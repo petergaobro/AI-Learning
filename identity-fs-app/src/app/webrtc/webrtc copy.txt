@@ -1,0 +1,135 @@
+"use client"
+// import useWhisper from "@chengsokdara/use-whisper";
+import { useReactMediaRecorder } from "react-media-recorder-2";
+// import { uuid } from "uuidv4";
+// import fs from 'fs';
+// import { writeFile } from "fs/promises";
+import Image from 'next/image';
+import MicIconWhite from '../../../public/img/svg/mic-icon-white.svg'
+import MicCurrentColor from '../../../public/img/svg/mic-icon-currentColor.svg'
+import { useState } from "react";
+import { join } from "path";
+import crypto from "crypto"
+
+
+const chunks = []
+const Webrtc = () => {
+  const [file, setFile] = useState<File>()
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingComplete, setRecordingComplete] = useState(false);
+  const { status,
+    startRecording = () => {
+      setIsRecording(true);
+    },
+    stopRecording = () => {
+      setRecordingComplete(true);
+    }, mediaBlobUrl } = useReactMediaRecorder({
+      audio: true,
+      video: false,
+      // mediaRecorderOptions: { mimeType: 'audio/wav' }
+      blobPropertyBag: {
+        type: "audio/wav"
+      },
+
+      // async onStart(stream: any) {
+      //   const medRec = new MediaRecorder(stream)
+      // },
+
+      async onStop(blobUrl, blob) {
+        /** convert blob to wav file */
+        const rtcFile = new File([blob], `${crypto.randomBytes(8).toString("hex")}.wav`, { type: 'audio/wav', lastModified: Date.now() })
+
+        // const reader = new FileReader();
+        // reader.readAsArrayBuffer(blob);
+        // const blobFile = new Blob([reader.result as any], { type: 'audio/wav' })
+
+        // const file = fs.writeFileSync('./audiofile/hello.wav', [blob], { lastModified: Date.now() })
+        // console.log(file, typeof file, 'file');
+        // console.log(file.arrayBuffer());
+
+        // const reader = new FileReader();
+        // reader.readAsArrayBuffer(blob);
+
+        // reader.onloadend = async () => {
+        //   /** once the blob is loaded, convert it to a WAV file */
+        // const wavBlob: any = new Blob([reader.result as any], { type: 'audio/wav' })
+
+        //   /** generate a file path */
+        //   const filePath = './audiofile/kkk.wav'
+        //   const path = join("webrtc", "audio", file.name)
+        //   const buffer = Buffer.from(new Uint8Array(wavBlob))
+        //   // const bytes = await wavBlob.arrayBuffer()
+
+        //   console.log(path, 'path');
+        //   console.log(buffer, 'buffer');
+        //   // console.log(bytes, 'bytes');
+
+        //   /** write the wav blob to the file */
+        //   // fs.writeFile(filePath, Buffer.from(new Uint8Array(wavBlob)), (error) => {
+        //   //   if (error) {
+        //   //     console.error('Error saving WAV file:', error);
+        //   //   } else {
+        //   //     console.log('WAV file saved successfully', filePath);
+        //   //   }
+        //   // })
+        //   // await writeFile(path, buffer)
+
+        // }
+        // console.log([blob], 'blob');
+        // console.log(rtcFile, 'file');
+        // const wavBlob: any = new Blob([reader.result as any], { type: 'audio/wav' })
+
+        try {
+          const data = new FormData()
+          data.set('file', rtcFile)
+
+          const res = await fetch('/api/audioUpload', {
+            method: 'POST',
+            body: data
+          })
+          // handle the error
+          if (!res.ok) throw new Error(await res.text())
+        } catch (e: any) {
+          // Handle errors here
+          console.error(e)
+        }
+      },
+    })
+  const handleToggleRecording = () => {
+    setIsRecording(!isRecording);
+    if (!isRecording) {
+      startRecording();
+    } else {
+      stopRecording();
+    }
+  };
+
+  return (
+    <div>
+      <p>{status}</p>
+      <div className="flex items-center w-full" id="recordVoice">
+        {isRecording ? (
+          // Button for stopping recording
+          <button
+            onClick={handleToggleRecording}
+            className="mt-10 m-auto flex items-center justify-center bg-navy-1 hover:bg-navy-2 rounded-full w-20 h-20 focus:outline-none"
+          >
+            <Image src={MicIconWhite} alt='MicOn' />
+          </button>
+        ) : (
+          // Button for starting recording
+          <button
+            onClick={handleToggleRecording}
+            className="mt-10 p-2 m-auto flex items-center justify-center bg-grey-1 hover:bg-grey-2 rounded-full w-20 h-20 focus:outline-none"
+          >
+            <Image src={MicCurrentColor} alt='MicOff' />
+          </button>
+        )}
+      </div>
+      <p></p>
+      <audio src={mediaBlobUrl} autoPlay controls></audio>
+    </div>
+  )
+}
+
+export default Webrtc
